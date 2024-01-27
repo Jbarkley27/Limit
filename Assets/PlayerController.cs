@@ -15,16 +15,11 @@ public class PlayerController : MonoBehaviour
     public LayerMask groundMask;
     public LayerMask enemyMask;
 
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
 
     // Update is called once per frame
     void Update()
     {
-        //Hover();
+        if (HealthManager.instance.IsDead) HandleDeath();
 
     }
 
@@ -36,12 +31,14 @@ public class PlayerController : MonoBehaviour
         // Check for input (e.g., pressing a button to dash)
         if (InputManager.DashInput && canDash)
         {
+            if (HealthManager.instance.IsDead) return;
             StartCoroutine(Dash());
         }
 
         // Check for input (e.g., pressing a button to jump)
         if (InputManager.JumpInput && canJump)
         {
+            if (HealthManager.instance.IsDead) return;
             StartCoroutine(Jump());
         }
     }
@@ -58,7 +55,6 @@ public class PlayerController : MonoBehaviour
     public float jumpMass = 6;
     public float defaultMass = 1;
     public float jumpDrag;
-    //public float stopHoverToJumpTime;
 
     IEnumerator Jump()
     {
@@ -130,6 +126,7 @@ public class PlayerController : MonoBehaviour
 
     public void Hover()
     {
+        if (HealthManager.instance.IsDead) return;
 
         // Movement
         rb.AddForce(new Vector3(InputManager.MovementInput.x, 0, InputManager.MovementInput.y) * Time.deltaTime * movementSpeed);
@@ -175,13 +172,36 @@ public class PlayerController : MonoBehaviour
 
 
 
+    // Death
+    public bool deathTriggered = false;
+    public void HandleDeath()
+    {
+        if (deathTriggered) return;
+
+        StartCoroutine(Die());
+    }
+
+    IEnumerator Die()
+    {
+        deathTriggered = true;
+        // play death animation
+        // remove rb constraints so enemy can fall and roll naturally
+        rb.constraints = RigidbodyConstraints.None;
+        rb.useGravity = true;
+        yield return new WaitForSeconds(1);
+    }
+
+    
+
+
     [Header("Look At")]
     public float LookSpeed;
-    public Transform debugObject;
+    //public Transform debugObject;
     Vector3 targetDebugPosition;
     public GameObject enemyLocked;
     public GameObject lockOnUIIcon;
     public static Vector3 AimDirection;
+    public GameObject ringProjection;
 
 
     public float aimAssistRadius;
@@ -200,7 +220,7 @@ public class PlayerController : MonoBehaviour
         if (Physics.Raycast(ray, out var hitInfo, Mathf.Infinity))
         {
             //Debug.Log("Htting Something -- " + hitInfo.transform.gameObject.name);
-            debugObject.transform.position = hitInfo.point;
+            //debugObject.transform.position = hitInfo.point;
 
             targetDebugPosition = hitInfo.point;
 
@@ -219,7 +239,17 @@ public class PlayerController : MonoBehaviour
 
         rotatingContainer.forward = direction;
 
-        LockOnUI();
+        HandleRingProjection();
+    }
+
+    public void HandleRingProjection()
+    {
+        Quaternion newDirection = rotatingContainer.transform.rotation;
+
+        newDirection.x = 0;
+        newDirection.z = 0;
+
+        ringProjection.transform.rotation = newDirection;
     }
 
     public void LockOnUI()

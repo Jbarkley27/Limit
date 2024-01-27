@@ -1,0 +1,20 @@
+{
+    "name": "Infohazard.Demos",
+    "rootNamespace": "Infohazard.Demos",
+    "references": [
+        "GUID:6e6eabb6dbfd0c64296bf63916880825",
+        "GUID:6cbd575c524c95b42b43d42bff51eaa1",
+        "GUID:b4a0c6b3a1ffb244eb1bd2a48cfdef22",
+        "GUID:6055be8ebefd69e48b49212b09b47b2f",
+        "GUID:75469ad4d38634e559750d17036d5f7c"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Cinemachine;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 public class HealthManager : MonoBehaviour
 {
@@ -24,6 +25,8 @@ public class HealthManager : MonoBehaviour
     public float stopTime = 1f;
     private float currentT = 0f;
     public float sliderDropSpeed = 100f;
+    public TMP_Text healthText;
+    public bool IsDead = false;
 
     public static HealthManager instance { get; private set; }
 
@@ -67,6 +70,7 @@ public class HealthManager : MonoBehaviour
     {
         LerpHealth();
         barrierParent.GetComponent<HorizontalLayoutGroup>().spacing = AdjustBarrierSpacing();
+        healthText.text = $"{Mathf.RoundToInt(currentHealth)}";
     }
 
     public float spacingScaler;
@@ -78,6 +82,7 @@ public class HealthManager : MonoBehaviour
     public void TakeDamage(int amount)
     {
         if (Invincible) return;
+        if (IsDead) return;
 
         if (barrierCharges > 0)
         {
@@ -123,6 +128,8 @@ public class HealthManager : MonoBehaviour
 
     public void Die()
     {
-
+        IsDead = true;
+        sliderDropSpeed = sliderDropSpeed * 5;
+        
     }
 }
