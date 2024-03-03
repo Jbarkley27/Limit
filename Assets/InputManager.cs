@@ -27,8 +27,6 @@ public class InputManager : MonoBehaviour
 
 
 
-    #region KestralController
-
     [Header("Movement")]
     public static Vector2 MovementInput;
 
@@ -39,6 +37,12 @@ public class InputManager : MonoBehaviour
             MovementInput = context.ReadValue<Vector2>().normalized;
         }
     }
+
+
+
+
+
+
 
     [Header("Look")]
     public static Vector2 LookInput;
@@ -51,6 +55,12 @@ public class InputManager : MonoBehaviour
         }
     }
 
+
+
+
+
+
+
     [Header("Jump")]
     public static bool JumpInput;
 
@@ -60,12 +70,16 @@ public class InputManager : MonoBehaviour
         {
             JumpInput = true;
         }
-
         else
         {
             JumpInput = false;
         }
     }
+
+
+
+
+
 
     [Header("Dash")]
     public static bool DashInput;
@@ -76,12 +90,18 @@ public class InputManager : MonoBehaviour
         {
             DashInput = true;
         }
-
         else
         {
             DashInput = false;
         }
     }
+
+
+
+
+
+
+
 
     // SHOOT PRIMARY
     [Header("Shooting")]
@@ -117,13 +137,20 @@ public class InputManager : MonoBehaviour
             ShootingSecondary = true;
             ShootingPrimary = false;
         }
-
         else if (input.actions["ShootingSecondary"].WasReleasedThisFrame())
         {
             ShootingSecondary = false;
             BlockSecondaryShootingUntilShootButtonIsStopped = false;
         }
     }
+
+
+
+
+
+
+
+
 
     // TEST - used to have a button to use to test things
 
@@ -136,7 +163,12 @@ public class InputManager : MonoBehaviour
 
 
 
-    #endregion
+
+
+
+
+
+
 
     // UTILITIES =====================
 

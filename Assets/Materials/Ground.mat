@@ -186,7 +186,7 @@ Material:
     - _Cutoff: 0.5
     - _DetailAlbedoMapScale: 1
     - _DetailNormalMapScale: 1
-    - _DiffuseSmoothness: 0.819
+    - _DiffuseSmoothness: 0.5
     - _DiffuseThresholdOffset: 0.25
     - _Dissolve: 0
     - _DissolveAmount: 0.5
@@ -246,7 +246,7 @@ Material:
     - _StencilRef: 0
     - _StencilWriteMask: 255
     - _StencilZFail: 0
-    - _StylizeTab: 1
+    - _StylizeTab: 0
     - _Surface: 0
     - _ThresholdMapScale: 1
     - _VertexAnimation: 0
@@ -257,9 +257,9 @@ Material:
     - _ZTest: 4
     - _ZWrite: 1
     m_Colors:
-    - _AlbedoColor: {r: 0.084104665, g: 0.21068642, b: 0.2830189, a: 1}
+    - _AlbedoColor: {r: 0.06941973, g: 0.13628817, b: 0.2264151, a: 1}
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
-    - _Color: {r: 0.08410465, g: 0.21068639, b: 0.28301886, a: 1}
+    - _Color: {r: 0.0694197, g: 0.13628814, b: 0.22641507, a: 1}
     - _DissolveBorderColor: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _GoochBrightColor: {r: 1, g: 1, b: 1, a: 1}

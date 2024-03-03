@@ -101,18 +101,67 @@ public class EnemyBase : MonoBehaviour
     [Range(0, 4f)]
     public float heightMaxChange;
 
+    [Header("Health UI")]
+    public EnemyHealthManager enemyHealth;
+    public GameObject UIPlacementPosition;
+    public EnemyDatabase.EnemyType type;
+
+
+    public Rigidbody meshRigidbody;
+
+
+    [Header("Debug")]
+    public bool isActive = true;
 
     void Start()
     {
+        if (!isActive) return;
+
         current_state = EnemyState.IDLE;
+        meshRigidbody.isKinematic = true;
+
+        GameObject HealthUI = Instantiate(GlobalDataReference.instance.EnemyHealthPrefab);
+        enemyHealth = HealthUI.GetComponent<EnemyHealthManager>();
+        enemyHealth.AssignEnemy(UIPlacementPosition);
+        enemyHealth.enemyBase = GetComponent<EnemyBase>();
     }
 
 
-   
+
     // Update is called once per frame
     void Update()
     {
+        if (!isActive) return;
         HandleState();
+        EnemyAgentMovement();
+        EffectiveRangeFinder();
+
+        if(enemyHealth.isDead && !IsDying)
+        {
+            StartCoroutine(Die());
+        }
+    }
+
+    [Header("Death")]
+
+    public bool IsDying;
+    public float deathForce;
+
+    public IEnumerator Die()
+    {
+        IsDying = true;
+        
+
+        yield return new WaitForSeconds(.4f);
+
+        meshRigidbody.isKinematic = false;
+
+        meshRigidbody.AddForce(deathForce * -transform.up, ForceMode.VelocityChange);
+
+        yield return new WaitForSeconds(1f);
+        Destroy(actualmesh);
+        Destroy(enemyHealth.gameObject);
+        Destroy(gameObject);
     }
 
     public void SwitchState(EnemyState newState)
@@ -122,7 +171,11 @@ public class EnemyBase : MonoBehaviour
         if (current_state == EnemyState.IDLE)
         {
             // HANDLE SWITCHING FROM IDLE STATE
-            StopCoroutine(RandomWaypointGenerator());
+            StopCoroutine(randomWayPointGetter);
+            StopCoroutine(RandomHeightCo);
+            StopCoroutine(SpinAnimationCo);
+            StopCoroutine(SpeedGeneratorCo);
+            StartCoroutine(ResetSpinRotation());
         }
 
 
@@ -136,9 +189,6 @@ public class EnemyBase : MonoBehaviour
         {
             case EnemyState.IDLE:
                 RunIdleState();
-                break;
-            case EnemyState.LOOK_FOR_PLAYER:
-                RunLookForPlayerState();
                 break;
             case EnemyState.ATTACK:
                 RunAttackState();
@@ -157,12 +207,15 @@ public class EnemyBase : MonoBehaviour
 
     // IDLE
 
+    #region Idle
+
     public void RunIdleState()
     {
         // Check if we need to leave Idle state
-        if (PlayerNearby)
+        if (DetectionVolume.EnemyDetected)
         {
-            SwitchState(EnemyState.LOOK_FOR_PLAYER);
+            Debug.Log("Switching to Attack State");
+            SwitchState(EnemyState.ATTACK);
             return;
         }
 
@@ -178,10 +231,7 @@ public class EnemyBase : MonoBehaviour
 
         RandomHeightMovementHelper();
 
-        EnemyAgentMovement();
-
-        // Play Animation
-        //animator.Play("EnemyHoverIdle");
+        
     }
 
 
@@ -206,9 +256,6 @@ public class EnemyBase : MonoBehaviour
         {
             // Get Random Waypoint
             navMeshAgent.speed = Random.Range(minSpeed, maxSpeed);
-            navMeshAgent.angularSpeed = Random.Range(minAngularSpeed, maxAngularSpeed);
-
-            
             yield return new WaitForSeconds(Random.Range(minSpeedSwitchTime, maxSpeedSwitchTime));
         }
     }
@@ -217,7 +264,7 @@ public class EnemyBase : MonoBehaviour
     IEnumerator RandomHeightMovement()
     {
 
-        while (current_state == EnemyState.IDLE)
+        while (current_state == EnemyState.IDLE && !enemyHealth.isDead)
         {
             Vector3 goal = new Vector3(heightParentObject.transform.position.x, heightParentObject.transform.position.y, heightParentObject.transform.position.z);
 
@@ -257,6 +304,24 @@ public class EnemyBase : MonoBehaviour
 
         CanSpin = true;
     }
+
+    IEnumerator ResetSpinRotation()
+    {
+
+        float startRotation = innerAnimationLevel.transform.eulerAngles.z;
+        //float endRotation = 360.0f - startRotation;
+        float t = 0.0f;
+        float duration = Random.Range(minSpinDuration, maxSpinDuration);
+        while (t < duration)
+        {
+            t += Time.deltaTime;
+            float zRotation = Mathf.Lerp(startRotation, 0, t / duration) % 360.0f;
+            innerAnimationLevel.transform.eulerAngles = new Vector3(innerAnimationLevel.transform.eulerAngles.x, innerAnimationLevel.transform.eulerAngles.y, zRotation);
+            yield return null;
+        }
+    }
+
+
     public void RandomHeightMovementHelper()
     {
         GoalHeight.x = heightParentObject.transform.position.x;
@@ -266,14 +331,16 @@ public class EnemyBase : MonoBehaviour
     }
 
 
+    #endregion
 
     // MOVEMENT
 
     public void EnemyAgentMovement()
     {
-        if(current_state == EnemyState.IDLE)
+        
+        // IDLE MOVEMENT =====================
+        if (current_state == EnemyState.IDLE)
         {
-            // IDLE MOVEMENT
             Vector3 groundHitPoint = MainWaypoint.position;
 
             if (current_waypoint != null)
@@ -286,61 +353,222 @@ public class EnemyBase : MonoBehaviour
             
 
 
-            GetComponent<NavMeshAgent>().destination = groundHitPoint;
-            transform.rotation = Quaternion.LookRotation(GetComponent<NavMeshAgent>().velocity);
+            navMeshAgent.destination = groundHitPoint;
+
+            Quaternion toRotation = Quaternion.LookRotation(GetComponent<NavMeshAgent>().velocity);
+            transform.rotation = Quaternion.Lerp(transform.rotation, toRotation, Random.Range(minAngularSpeed, maxAngularSpeed) * Time.deltaTime);
+        }
+
+        // ATTACK MOVEMENT ======================
+        else if (current_state == EnemyState.ATTACK)
+        {
+            // PLAYER NAVMESH DESTINATION
+            Transform player = GlobalDataReference.instance.player;
+            Vector3 groundHitPoint = player.position;
+            groundHitPoint.y = 0;
+
+            // IF ENEMY CANT SEE PLAYER
+            if (!CanSeePlayer && !inEffectiveRange)
+            {
+                navMeshAgent.destination = groundHitPoint;
+                navMeshAgent.speed = Random.Range(LookForPlayerMovementSpeedMin, LookForPlayerMovementSpeedMax);
+                navMeshAgent.angularSpeed = Random.Range(LookForPlayerAngularSpeedMin, LookForPlayerAngularSpeedMax);
+
+
+                if (!Mathf.Approximately(navMeshAgent.velocity.sqrMagnitude, 0f))
+                {
+                    Quaternion toRotation = Quaternion.LookRotation(GetComponent<NavMeshAgent>().velocity);
+                    transform.rotation = Quaternion.Lerp(transform.rotation, toRotation, Random.Range(LookForPlayerAngularSpeedMin, LookForPlayerAngularSpeedMax) * Time.deltaTime);
+                }
+                   
+
+
+                CanAttack = false;
+            }
+
+            else
+            {
+
+                if(!inEffectiveRange)
+                {
+                    
+                    navMeshAgent.destination = groundHitPoint;
+                    navMeshAgent.speed = Random.Range(AttackMovementSpeedMin, AttackMovementSpeedMax);
+                    navMeshAgent.angularSpeed = Random.Range(AttackAngularSpeedMin, AttackAngularSpeedMax);
+
+                    if (!Mathf.Approximately(navMeshAgent.velocity.sqrMagnitude, 0f))
+                    {
+                        Quaternion toRotation = Quaternion.LookRotation(GetComponent<NavMeshAgent>().velocity);
+                        transform.rotation = Quaternion.Lerp(transform.rotation, toRotation, Random.Range(AttackAngularSpeedMin, AttackAngularSpeedMax) * Time.deltaTime);
+                    }
+
+                    
+                }
+
+                else
+                {
+                    //Debug.Log("Agent Destination " + navMeshAgent.destination);
+                    //Debug.Log("In Effective Range Movement Logic");
+                    //Debug.Log("UpdateRotation Setting " + navMeshAgent.updateRotation);
+
+                    navMeshAgent.destination = groundHitPoint;
+                    navMeshAgent.speed = Random.Range(AttackMovementSpeedMin, AttackMovementSpeedMax);
+                    navMeshAgent.angularSpeed = Random.Range(AttackAngularSpeedMin, AttackAngularSpeedMax);
+
+                    if (!Mathf.Approximately(navMeshAgent.velocity.sqrMagnitude, 0f))
+                    {
+                        Quaternion toRotation = Quaternion.LookRotation(GetComponent<NavMeshAgent>().velocity);
+                        transform.rotation = Quaternion.Lerp(transform.rotation, toRotation, Random.Range(AttackAngularSpeedMin, AttackAngularSpeedMax) * Time.deltaTime);
+                    } else
+                    {
+                        //MANUALLY CONTROL WHILE IN RANGE
+
+
+                        Vector3 direction = (player.transform.position - actualmesh.transform.position);
+                        Quaternion lookRotation = Quaternion.LookRotation(direction);
+                        
+                        Quaternion targetRot = Quaternion.Lerp(actualmesh.transform.rotation, lookRotation, Time.deltaTime * effectRangeLookSpeed);
+
+                        targetRot.x = 0;
+                        targetRot.z = 0;
+
+                        transform.rotation = targetRot;
+
+                        Debug.Log("Remaing Distance " + navMeshAgent.remainingDistance);
+
+                        if (navMeshAgent.remainingDistance <= MinDistanceTobackUp)
+                        {
+                            Debug.Log("Backing Up");
+                            GetComponent<Rigidbody>().AddForce(-direction * backUpSpeed);
+                        }
+                    }
+                }
+               
+                CanAttack = true;
+            }
         }
 
 
         
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-    // LOOK FOR PLAYER
-
-    public void RunLookForPlayerState()
-    {
-
-    }
-
-
-
-
+    public float MinDistanceTobackUp;
+    public GameObject actualmesh;
+    public float effectRangeLookSpeed;
+    public float backUpSpeed;
 
 
 
     // ATTACK
+    [Header("Attack State")]
+    public bool CanAttack;
+    public float LookForPlayerMovementSpeedMax;
+    public float LookForPlayerMovementSpeedMin;
+    public float LookForPlayerAngularSpeedMax;
+    public float LookForPlayerAngularSpeedMin;
 
+    public float AttackMovementSpeedMax;
+    public float AttackMovementSpeedMin;
+    public float AttackAngularSpeedMax;
+    public float AttackAngularSpeedMin;
+
+    public bool inEffectiveRange;
     public void RunAttackState()
     {
+        FindPlayer();
+        //Debug.Log("Coroutine is Null -- " + AttackCo == null);
+        if (!StartedAttackSequence) AttackCo = StartCoroutine(Attack());
+
 
     }
 
-    
-    public void Move()
+    public void EffectiveRangeFinder()
     {
-        //Vector3 groundHitPoint;
-        //if (Physics.Raycast(EnemyFollowObject.transform.position, -EnemyFollowObject.transform.up, out var hitInfo, Mathf.Infinity, groundMask))
-        //{
-        //    groundHitPoint = hitInfo.point;
-        //}
+        if (navMeshAgent.remainingDistance <= navMeshAgent.stoppingDistance)
+        {
+            //Debug.Log("In Effective Range");
+            navMeshAgent.updateRotation = false;
+            //navMeshAgent.updatePosition = false;
+            inEffectiveRange = true;
+            //navMeshAgent.enabled = false;
+        }
+        else
+        {
+            navMeshAgent.updateRotation = true;
+            //navMeshAgent.updatePosition = true;
+            inEffectiveRange = false;
+            //navMeshAgent.enabled = true;
+        }
+    }
 
-        //else
-        //{
-        //    groundHitPoint = homeBaseObject.transform.position;
-        //}
-        //GetComponent<NavMeshAgent>().destination = groundHitPoint;
+
+    [Header("Attack Values")]
+    public GameObject AttackPoint;
+    public List<EnemyAttackLibrary.AttackType> attackTypesAvailable = new List<EnemyAttackLibrary.AttackType>();
+    public float attackCastTime;
+    public float minTimeBetweenAttacks;
+    public float maxTimeBetweenAttacks;
+    public bool StartedAttackSequence = false;
+    Coroutine AttackCo;
+
+    public IEnumerator Attack()
+    {
+        
+        StartedAttackSequence = true;
+
+        yield return new WaitForSeconds(Random.Range(1f, 2f));
+
+        while (current_state == EnemyState.ATTACK)
+        {
+
+            // Get Random Attack
+
+            EnemyAttackLibrary.AttackType randomAttack = attackTypesAvailable[Random.Range(0, attackTypesAvailable.Count)];
+
+            // Attack
+            //Debug.Log("Performing Attack ++ " + randomAttack);
+
+            EnemyAttackLibrary.instance.UseAttack(randomAttack, AttackPoint.transform, GlobalDataReference.instance.player);
+
+            // Time to complete attack, this helps with longer/stronger attacks not being spammed too frequently
+            //yield return new WaitForSeconds(attackCastTime);
+
+            // Wait To Attack
+            yield return new WaitForSeconds(Random.Range(minTimeBetweenAttacks, maxTimeBetweenAttacks));
+        }
+
+        StartedAttackSequence = false;
+    }
+
+    [Header("Enemy Vision")]
+    public float enemyVisionRadius;
+    public float enemyVisionDistance;
+    public bool CanSeePlayer;
+    public void FindPlayer()
+    {
+        Debug.DrawRay(innerAnimationLevel.transform.position, innerAnimationLevel.transform.forward * enemyVisionDistance, Color.black);
+        if(Physics.SphereCast(innerAnimationLevel.transform.position, enemyVisionRadius, innerAnimationLevel.transform.forward, out var hit, enemyVisionDistance))
+        {
+            //Debug.Log("Success Hit Info " + hit.transform.gameObject.tag);
+            if (hit.transform.gameObject.CompareTag("Player"))
+            {
+                CanSeePlayer = true;
+                //if (AttackCo == null) AttackCo = StartCoroutine(Attack());
+            }
+
+            else
+            {
+                //Debug.Log("Failed To Hit Info ");
+                CanSeePlayer = false;
+                //if (AttackCo != null) StopCoroutine(AttackCo);
+            }
+
+        }
         
     }
+
+
+
+    
+
 }

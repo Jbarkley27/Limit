@@ -34,27 +34,29 @@ public class PlayerBullet : MonoBehaviour
     {
         if (collider.gameObject.layer == LayerMask.NameToLayer("Enemy"))
         {
-            //GlobalDataReference.instance.reticleManager.ShowDamageReticle();
+            if (collider.gameObject.TryGetComponent<EnemyBase>(out var enemy))
+            {
+                enemy.enemyHealth.TakeDamage(damage);
+            }
+          
+
 
             if (collider.gameObject.TryGetComponent<HitFlash>(out var hitEnemy))
             {
                 hitEnemy.Flash();
             }
-            else
-            {
-                Debug.Log("NULL");
-            }
-            Debug.Log("Hit -- " + collider.name);
+           
             Destroy(gameObject);
         }
 
         // make sure the bullet doesn't collide with the player or themselves
         else if (
             !collider.gameObject.CompareTag("Player") &&
-            !collider.gameObject.CompareTag("PlayerProjectile")
+            !collider.gameObject.CompareTag("PlayerProjectile") &&
+            !collider.gameObject.CompareTag("DetectionVolume") &&
+            !collider.gameObject.CompareTag("EnemyBullet")
             )
         {
-            Debug.Log("Hit -- " + collider.name);
             Destroy(gameObject);
         }
     }

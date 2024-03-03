@@ -15,12 +15,7 @@ Material:
   - _MK_ARTISTIC_ANIMATION_STUTTER
   - _MK_ENVIRONMENT_REFLECTIONS_AMBIENT
   - _MK_LIGHT_CEL
-  - _MK_RECEIVE_SHADOWS
-  - _MK_SPECULAR_ISOTROPIC
-  - _MK_WRAPPED_DIFFUSE
-  m_InvalidKeywords:
-  - _RECEIVESHADOWS_ON
-  - _WRAPPEDLIGHTING_ON
+  m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
@@ -34,7 +29,16 @@ Material:
     serializedVersion: 3
     m_TexEnvs: []
     m_Ints: []
-    m_Floats: []
+    m_Floats:
+    - _AdvancedTab: 1
+    - _DiffuseSmoothness: 0
+    - _Light: 1
+    - _LightThreshold: 0
+    - _ReceiveShadows: 0
+    - _Specular: 0
+    - _SpecularSmoothness: 0
+    - _StylizeTab: 1
+    - _WrappedLighting: 0
     m_Colors:
     - _AlbedoColor: {r: 0.9098039, g: 0.03529412, b: 0.2901961, a: 1}
     - _Color: {r: 0.9098039, g: 0.03529412, b: 0.29019606, a: 1}

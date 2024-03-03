@@ -1,26 +1,26 @@
 using System.Collections;
-using System.Collections.Generic;
 using FMODUnity;
 using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
-    public float hoverHeight;
     public Rigidbody rb;
 
+    [Header("Y Rotate Parent")]
     public Transform nonRotatingContainer;
 
+    [Header("X | Z Rotate Parent")]
     public Transform rotatingContainer;
 
+    [Header("Layer Masks")]
     public LayerMask groundMask;
     public LayerMask enemyMask;
 
 
-    // Update is called once per frame
     void Update()
     {
+        // Watch for Death
         if (HealthManager.instance.IsDead) HandleDeath();
-
     }
 
     private void FixedUpdate()
@@ -28,50 +28,50 @@ public class PlayerController : MonoBehaviour
         Hover();
         Look();
 
-        // Check for input (e.g., pressing a button to dash)
+        // Watch for Dash Input
         if (InputManager.DashInput && canDash)
         {
             if (HealthManager.instance.IsDead) return;
             StartCoroutine(Dash());
         }
 
-        // Check for input (e.g., pressing a button to jump)
-        if (InputManager.JumpInput && canJump)
-        {
-            if (HealthManager.instance.IsDead) return;
-            StartCoroutine(Jump());
-        }
+        // Watch for Jump Input
+        //if (InputManager.JumpInput && canJump)
+        //{
+        //    if (HealthManager.instance.IsDead) return;
+        //    StartCoroutine(Jump());
+        //}
     }
 
 
 
 
 
-    [Header("Jump")]
-    public float jumpCooldown;
-    public float jumpForce;
-    public bool canJump = true;
-    public bool jumping;
-    public float jumpMass = 6;
-    public float defaultMass = 1;
-    public float jumpDrag;
+    //[Header("Jump")]
+    //public float jumpCooldown;
+    //public float jumpForce;
+    //private bool canJump = true;
+    //private bool jumping;
+    //public float jumpMass = 6;
+    
+    //public float jumpDrag;
 
-    IEnumerator Jump()
-    {
-        canHover = false;
-        canJump = false;
-        jumping = true;
+    //IEnumerator Jump()
+    //{
+    //    canHover = false;
+    //    canJump = false;
+    //    jumping = true;
 
-        rb.AddForce(jumpForce * Vector3.up, ForceMode.Impulse);
+    //    rb.AddForce(jumpForce * Vector3.up, ForceMode.Impulse);
 
-        yield return new WaitForSeconds(jumpCooldown);
+    //    yield return new WaitForSeconds(jumpCooldown);
 
-        canJump = true;
-        jumping = false;
+    //    canJump = true;
+    //    jumping = false;
 
 
-        InputManager.JumpInput = false;
-    }
+    //    InputManager.JumpInput = false;
+    //}
 
 
 
@@ -122,6 +122,7 @@ public class PlayerController : MonoBehaviour
     public float hoverForceMultiplier;
     public float gravityForce;
     public bool canHover = true;
+    public float defaultMass = 1;
 
 
     public void Hover()
@@ -158,14 +159,14 @@ public class PlayerController : MonoBehaviour
             rb.drag = 3;
             rb.mass = defaultMass;
         }
-        else
-        {
-            rb.mass = jumpMass;
-            rb.useGravity = true;
-            rb.drag = jumpDrag;
-            IsGrounded = false;
-            rb.AddForce(-nonRotatingContainer.up * gravityForce, ForceMode.Acceleration);
-        }
+        //else
+        //{
+        //    rb.mass = jumpMass;
+        //    rb.useGravity = true;
+        //    rb.drag = jumpDrag;
+        //    IsGrounded = false;
+        //    rb.AddForce(-nonRotatingContainer.up * gravityForce, ForceMode.Acceleration);
+        //}
     }
 
 
@@ -196,48 +197,37 @@ public class PlayerController : MonoBehaviour
 
     [Header("Look At")]
     public float LookSpeed;
-    //public Transform debugObject;
     Vector3 targetDebugPosition;
-    public GameObject enemyLocked;
-    public GameObject lockOnUIIcon;
+    public GameObject aimingAtEnemy;
     public static Vector3 AimDirection;
     public GameObject ringProjection;
+    public LayerMask aimMask;
 
-
-    public float aimAssistRadius;
-    RaycastHit hit;
     public void Look()
     {
         var ray = Camera.main.ScreenPointToRay(new Vector3(FreeCursor.reticleX, FreeCursor.reticleY, 0));
 
-        if (Physics.SphereCast(transform.position, aimAssistRadius, ray.direction, out hit, enemyMask))
+
+        if (Physics.Raycast(ray, out var hitInfo, Mathf.Infinity, aimMask))
         {
-            Debug.Log(hit.collider.gameObject);
-        }
-
-       
-
-        if (Physics.Raycast(ray, out var hitInfo, Mathf.Infinity))
-        {
-            //Debug.Log("Htting Something -- " + hitInfo.transform.gameObject.name);
-            //debugObject.transform.position = hitInfo.point;
-
+            // Ensure the player isn't used in the rotation
             targetDebugPosition = hitInfo.point;
+
 
             if (hitInfo.transform.gameObject.CompareTag("Enemy"))
             {
-                enemyLocked = hitInfo.transform.gameObject;
+                aimingAtEnemy = hitInfo.transform.gameObject;
             }
             else
             {
-                enemyLocked = null;
+                aimingAtEnemy = null;
             }
         }
 
-        var direction = targetDebugPosition - rotatingContainer.position;
-        AimDirection = direction;
-
-        rotatingContainer.forward = direction;
+        Debug.DrawRay(transform.position, transform.forward * 1000f, Color.red);
+        AimDirection = targetDebugPosition - rotatingContainer.position;
+        AimDirection.y = 0;
+        rotatingContainer.forward = AimDirection;
 
         HandleRingProjection();
     }
@@ -252,17 +242,5 @@ public class PlayerController : MonoBehaviour
         ringProjection.transform.rotation = newDirection;
     }
 
-    public void LockOnUI()
-    {
-        if (enemyLocked != null)
-        {
-            lockOnUIIcon.transform.position = Camera.main.WorldToScreenPoint(enemyLocked.transform.position);
-            lockOnUIIcon.SetActive(true);
-        }
-
-        else
-        {
-            lockOnUIIcon.SetActive(false);
-        }
-    }
+    
 }

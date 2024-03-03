@@ -6,6 +6,9 @@ TagManager:
   tags:
   - Enemy
   - PlayerProjectile
+  - AAMarker
+  - DetectionVolume
+  - EnemyBullet
   layers:
   - Default
   - TransparentFX

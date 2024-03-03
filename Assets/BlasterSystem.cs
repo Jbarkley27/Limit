@@ -36,6 +36,7 @@ public class BlasterSystem : MonoBehaviour
     [Header("Settings")]
     public bool isShooting;
     public bool CanShoot;
+    public Transform attackPoint;
 
 
     // Start is called before the first frame update
@@ -100,11 +101,11 @@ public class BlasterSystem : MonoBehaviour
             {
 
                 // aim direction with spread added
-                Vector3 aimDirectionWithSpread = PlayerAimManager.instance.GetProjectileDirection(spread);
+                Vector3 aimDirectionWithSpread = GetProjectileDirection(spread);
 
 
                 // Create Bullet =========================================================================
-                GameObject spawnedProjectile = Instantiate(testProjectile, PlayerAimManager.instance.GetAttackPointPosition().position, Quaternion.LookRotation(aimDirectionWithSpread, Vector3.up));
+                GameObject spawnedProjectile = Instantiate(testProjectile, attackPoint.position, Quaternion.LookRotation(aimDirectionWithSpread, Vector3.up));
 
                 //// start the projectiles routine
                 spawnedProjectile.GetComponent<PlayerBullet>().StartMoving(projectileSpeed, baseDamage, range);
@@ -141,11 +142,11 @@ public class BlasterSystem : MonoBehaviour
             {
 
                 // aim direction with spread added
-                Vector3 aimDirectionWithSpread = PlayerAimManager.instance.GetProjectileDirection(spreadSecondary);
+                Vector3 aimDirectionWithSpread = GetProjectileDirection(spreadSecondary);
 
 
                 // Create Bullet =========================================================================
-                GameObject spawnedProjectile = Instantiate(testProjectileSecondary, PlayerAimManager.instance.GetAttackPointPosition().position, Quaternion.LookRotation(aimDirectionWithSpread, Vector3.up));
+                GameObject spawnedProjectile = Instantiate(testProjectileSecondary, attackPoint.position, Quaternion.LookRotation(aimDirectionWithSpread, Vector3.up));
 
                 //// start the projectiles routine
                 spawnedProjectile.GetComponent<PlayerBullet>().StartMoving(projectileSpeedSecondary, baseDamageSecondary, rangeSecondary);
@@ -199,5 +200,40 @@ public class BlasterSystem : MonoBehaviour
         }
 
 
+    }
+
+
+    public Vector3 GetProjectileDirection(float spread)
+    {
+        Vector3 directionWithoutSpread = PlayerController.AimDirection;
+
+        float xFactor = Random.Range(0, 1f);
+        float yFactor = Random.Range(0, 1f);
+
+        //Calculate spread
+        float x = xFactor * spread * GetRandomNegOrPositive();
+        float y = yFactor * spread * GetRandomNegOrPositive();
+
+        //calc new direction with spread
+        Vector3 directionWithSpread = directionWithoutSpread + new Vector3(x, y, 0); // add spread to last digit
+
+        return directionWithSpread.normalized;
+    }
+
+    public int GetRandomNegOrPositive()
+    {
+        float positiveOrNeg = Random.Range(0, 1);
+        int negFactor = 0;
+
+        if (positiveOrNeg > 0.5f)
+        {
+            negFactor = -1;
+        }
+        else
+        {
+            negFactor = 1;
+        }
+
+        return negFactor;
     }
 }
